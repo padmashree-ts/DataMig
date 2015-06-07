@@ -64,7 +64,6 @@ object DataMigration {
           mergedOutput = newOutput
         }
       }
-      println(mergedOutput)
       mergedOutput
     }
   }
