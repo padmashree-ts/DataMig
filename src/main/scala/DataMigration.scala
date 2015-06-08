@@ -9,6 +9,7 @@ import org.joda.time._
 import play.api.libs.json.Json
 import play.api.libs.json._
 import org.joda.time.format.DateTimeFormat
+import scala.collection.immutable.ListMap
 
 
 object DataMigration {
@@ -21,15 +22,16 @@ object DataMigration {
       val json = textFile.substring(index)
       (requestId, json)
     })
+
     val keyValuePairs = requestByIdValue.groupByKey()
     keyValuePairs.map { case (requestId, requests) =>
       if (requests.size > 1) {
-        requestId + " " + merging(requests)
+        requestId + " " + mergedOutputToString(merging(requests))
       }
       else {
-        requestId + " " + requests
+       requestId + requests.mkString
       }
-    }.saveAsTextFile("/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration1")
+    }.saveAsTextFile("/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration")
 
     def parseJsonToMap(s: String): Map[String, String] = {
       Json.parse(s).as[JsObject].fields.map { case (k, v) => (k, v.as[String]) }.toMap
@@ -45,29 +47,35 @@ object DataMigration {
         var currentDate = DateTime.parse(currentMap("created_at").toString(), DateTimeFormat.forPattern(datePattern))
         var mergedDate = DateTime.parse(mergedOutput("created_at").toString(), DateTimeFormat.forPattern(datePattern))
 
-        if( currentDate.isAfter(mergedDate) )
-        {
-          var keysOnlyInPrevMergedOutput = mergedOutput.keys.toSet diff currentMap.keys.toSet
-          var valsOnlyInPrevMergedOutput = keysOnlyInPrevMergedOutput.map(key => mergedOutput(key))
-          var keyValuesOnlyInPrevMergedOutput = keysOnlyInPrevMergedOutput.zip(valsOnlyInPrevMergedOutput).toMap
-
-          var newOutput = currentMap ++ keyValuesOnlyInPrevMergedOutput
+        if (currentDate.isAfter(mergedDate)) {
+          var keysOnlyInPrevMap = mergedOutput.keys.toSet diff currentMap.keys.toSet
+          var keyValuesOnlyInPrevMap = keysOnlyInPrevMap.map(k => (k, mergedOutput(k))).toMap
+          var newOutput = currentMap ++ keyValuesOnlyInPrevMap
           mergedOutput = newOutput
         }
-        else if(mergedDate.isAfter(currentDate))
-        {
+        else if (mergedDate.isAfter(currentDate)) {
           var keysOnlyInCurrentMap = currentMap.keys.toSet diff mergedOutput.keys.toSet
-          var valsOnlyInCurrentMap = keysOnlyInCurrentMap.map(key=>currentMap(key))
-          var keyValuesOnlyInCurrentMap = keysOnlyInCurrentMap.zip(valsOnlyInCurrentMap).toMap
-
+          var keyValuesOnlyInCurrentMap = keysOnlyInCurrentMap.map(k => (k, currentMap(k))).toMap
           var newOutput = mergedOutput ++ keyValuesOnlyInCurrentMap
           mergedOutput = newOutput
         }
       }
       mergedOutput
     }
+
+    def mergedOutputToString(m:Map[String,String]):String = {
+      ListMap(m.toSeq.sortBy(_._1):_*).map{case (k,v)=>pretty(k,v)}.mkString("{",",","}")
+    }
+
+    def pretty(k:String,v:String):String ={
+      val quote="\""
+      val s = quote +k+ quote + ":" + quote +v+ quote
+      s
+    }
   }
 }
+
+
 
 
 
