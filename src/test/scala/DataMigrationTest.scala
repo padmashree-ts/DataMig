@@ -1,3 +1,4 @@
+import com.instructure.DataMigration
 import org.scalatest.FunSuite
 import scala.io.Source
 
@@ -18,5 +19,6 @@ class DataMigrationTest extends FunSuite {
     //val lines = Source.fromFile("target/lessDataMigration/part-00000").getLines.toList
     assert(lines(0).contains("5625fa4e"))
   }
+
 
 }
