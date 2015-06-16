@@ -12,4 +12,10 @@ class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeA
     DataMigration.run(sc,"/Users/pteeka/IdeaProjects/DataMig/src/main/resources/lessDataMigration.txt","/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration" )
   }
 
+  sparkTest("grouping by RequestId") {
+    val textFile = sc.textFile("/Users/pteeka/IdeaProjects/DataMig/src/main/resources/lessDataMigration.txt")
+    val requestIdValuePairs = DataMigration.groupByRequestId(textFile)
+    assert(requestIdValuePairs.count() == 5)
+  }
+
 }
