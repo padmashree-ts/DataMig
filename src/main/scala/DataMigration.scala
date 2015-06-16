@@ -1,34 +1,30 @@
 package com.instructure
 
-import org.apache.spark.rdd.RDD
+import org.apache.spark.rdd._
 import org.apache.spark.{SparkContext, _}
+import org.apache.spark.SparkContext._
 import org.joda.time._
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{Json, _}
-import org.apache.spark.rdd.PairRDDFunctions
-import scala.reflect.ClassTag
 
+@SerialVersionUID(1238293423L)
 object DataMigration {
+
   def run(sc: SparkContext, inputPath: String, outputPath: String) : Unit  = {
+
     val textFile=sc.textFile(inputPath)
-    val requestByIdValue = textFile.map(textFile => {
-      val index = textFile.indexOf(" ")
-      val requestId = textFile.substring(0, index)
-      val json = textFile.substring(index)
-      (requestId, json)
-    })
+    val keyValuePairs=groupByRequestId(textFile)
 
-    implicit def rddToPairRDDFunctions[K: ClassTag, V: ClassTag](rdd: RDD[(K, V)]) = new PairRDDFunctions(rdd)
-
-    val pairRequestByIdValue=rddToPairRDDFunctions(requestByIdValue)
-
-    val keyValuePairs = pairRequestByIdValue.groupByKey()
     keyValuePairs.map { case (requestId, requests) =>
       if (requests.size > 1) {
-        requestId + " " + mergedOutputToString(merging(requests))
+        val requestMap = merging(requests)
+        val currentDate = DateTime.parse(requestMap("created_at"),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ"))
+        requestMap("user_id") + "|" + currentDate + "|" + requestId + " " + mergedOutputToString(requestMap)
       }
       else {
-        requestId + requests.mkString
+        val requestMap=parseJsonToMap(requests.mkString)
+        val currentDate = DateTime.parse(requestMap("created_at"),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ"))
+        requestMap("user_id") + "|" + currentDate + "|" + requestId + " " + requests.mkString
       }
     }.saveAsTextFile(outputPath)
 
@@ -36,7 +32,8 @@ object DataMigration {
       Json.parse(s).as[JsObject].fields.map { case (k, v) => (k, v.as[String]) }.toMap
     }
 
-    def merging(requests: Iterable[String]): Map[String,String] = {
+    //def merging(requests: Iterable[String]): Map[String,String] = {
+    def merging(requests: Iterable[String]): Map[String,String]= {
       val requestMaps = requests.map(request => parseJsonToMap(request))
 
       val datePattern = "yyyy-MM-dd HH:mm:ssZ"
@@ -74,8 +71,19 @@ object DataMigration {
     }
   }
 
+  def groupByRequestId(textFile: RDD[String]): RDD[(String,Iterable[String])] ={
+    val requestByIdValue = textFile.map { line =>
+      val index = line.indexOf(" ")
+      val requestId = line.substring(0, index)
+      val json = line.substring(index)
+      (requestId, json)
+    }
+    val keyValuePairs=requestByIdValue.groupByKey()
+    keyValuePairs
+  }
+
   def main(args: Array[String]) {
-    val sc = new SparkContext(new SparkConf().setAppName("DataMigration").setMaster("local").set("spark.hadoop.validateOutputSpecs", "false"))
+    val sc = new SparkContext(new SparkConf().setAppName("DataMigration").set("spark.hadoop.validateOutputSpecs", "false"))
     //val inputPath ="/Users/pteeka/IdeaProjects/DataMig/src/main/resources/lessDataMigration.txt"
     //val outputPath="/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration"
     run( sc, args(0),args(1));
