@@ -11,11 +11,11 @@ libraryDependencies ++= Seq(
   "com.github.nscala-time" %% "nscala-time" % "2.0.0",
   //"com.typesafe.play" %% "play-json" % "2.4.0",
 
-  //"net.liftweb" %% "lift-json" % "2.6+",
+  "net.liftweb" %% "lift-json" % "2.6+",
 
-  ("org.apache.spark" %% "spark-core" % "1.3.0" % "provided").
+  //("org.apache.spark" %% "spark-core" % "1.3.0" % "provided").
    // ("org.apache.spark" %% "spark-core" % "1.2.0" % "provided").
-   // ("org.apache.spark" %% "spark-core" % "1.3.0").
+    ("org.apache.spark" %% "spark-core" % "1.3.0").
     exclude("org.mortbay.jetty", "servlet-api").
     exclude("commons-beanutils", "commons-beanutils-core").
     exclude("commons-collections", "commons-collections").
