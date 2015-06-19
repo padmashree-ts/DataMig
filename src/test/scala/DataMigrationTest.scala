@@ -1,4 +1,4 @@
-import com.instructure.DataMigration
+/*import com.instructure.DataMigration
 import org.scalatest.FunSuite
 import scala.io.Source
 
@@ -21,4 +21,4 @@ class DataMigrationTest extends FunSuite {
   }
 
 
-}
+}*/
