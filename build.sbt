@@ -13,7 +13,7 @@ libraryDependencies ++= Seq(
   "net.liftweb" %% "lift-json" % "2.6+",
 
   ("org.apache.spark" %% "spark-core" % "1.3.0" % "provided").
-   // ("org.apache.spark" %% "spark-core" % "1.3.0").
+    //("org.apache.spark" %% "spark-core" % "1.3.0").
     exclude("org.mortbay.jetty", "servlet-api").
     exclude("commons-beanutils", "commons-beanutils-core").
     exclude("commons-collections", "commons-collections").

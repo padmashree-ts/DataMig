@@ -22,7 +22,7 @@ object DataMigration {
       val json = line.substring(index)
       (requestId, json)
     }
-    val keyValuePairs = requestByIdValue.groupByKey()
+    val keyValuePairs = requestByIdValue.groupByKey(numPartitions = 60)
     keyValuePairs
   }
 
@@ -53,24 +53,33 @@ object DataMigration {
 
     for (currentMap <- requestMaps) {
       if (currentMap.contains("updated_at")) {
-        val currentDate = DateTime.parse(currentMap("updated_at"), DateTimeFormat.forPattern(datePattern))
-        val mergedDate = DateTime.parse(mergedOutput("updated_at"), DateTimeFormat.forPattern(datePattern))
+        //if(checkFor(currentMap,"updated_at")) {
+          val currentDate = DateTime.parse(currentMap("updated_at"), DateTimeFormat.forPattern(datePattern))
+          val mergedDate = DateTime.parse(mergedOutput("updated_at"), DateTimeFormat.forPattern(datePattern))
 
-        if (currentDate.isAfter(mergedDate)) {
-          val keysOnlyInPrevMap = mergedOutput.keys.toSet diff currentMap.keys.toSet
-          val keyValuesOnlyInPrevMap = keysOnlyInPrevMap.map(k => (k, mergedOutput(k))).toMap
-          val newOutput = currentMap ++ keyValuesOnlyInPrevMap
-          mergedOutput = newOutput
-        }
-        else if (mergedDate.isAfter(currentDate)) {
-          val keysOnlyInCurrentMap = currentMap.keys.toSet diff mergedOutput.keys.toSet
-          val keyValuesOnlyInCurrentMap = keysOnlyInCurrentMap.map(k => (k, currentMap(k))).toMap
-          val newOutput = mergedOutput ++ keyValuesOnlyInCurrentMap
-          mergedOutput = newOutput
-        }
+          if (currentDate.isAfter(mergedDate)) {
+            val keysOnlyInPrevMap = mergedOutput.keys.toSet diff currentMap.keys.toSet
+            val keyValuesOnlyInPrevMap = keysOnlyInPrevMap.map(k => (k, mergedOutput(k))).toMap
+            val newOutput = currentMap ++ keyValuesOnlyInPrevMap
+            mergedOutput = newOutput
+          }
+          else if (mergedDate.isAfter(currentDate)) {
+            val keysOnlyInCurrentMap = currentMap.keys.toSet diff mergedOutput.keys.toSet
+            val keyValuesOnlyInCurrentMap = keysOnlyInCurrentMap.map(k => (k, currentMap(k))).toMap
+            val newOutput = mergedOutput ++ keyValuesOnlyInCurrentMap
+            mergedOutput = newOutput
+          }
       }
+        //}
     }
     mergedOutput
+  }
+
+  def checkFor(m: Map[String,String], s: String ) :Boolean = {
+    if (m.contains(s))
+      true
+    else
+      false
   }
 
   def parseStringToMapLift(s: String): Map[String, String] = {
@@ -86,9 +95,8 @@ object DataMigration {
 
   def main(args: Array[String]) {
     val sc = new SparkContext(new SparkConf().setAppName("DataMigration").set("spark.hadoop.validateOutputSpecs", "false"))
-    //val inputPath ="/Users/pteeka/IdeaProjects/DataMig/src/test/resources/mergingTestFile.txt"
-    //val inputPath = "/Users/pteeka/IdeaProjects/DataMig/src/main/resources/lessDataMigration.txt"
-    //val outputPath="/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration"
+    //val inputPath = "/Users/pteeka/IdeaProjects/DataMig/src/test/resources/mergingTestFile.txt"
+    //val outputPath="/Users/pteeka/IdeaProjects/DataMig/target/mergingTestFileOutput"
     run( sc, args(0),args(1));
     //run(sc,inputPath,outputPath)
   }

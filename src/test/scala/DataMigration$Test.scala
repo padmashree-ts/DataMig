@@ -68,16 +68,16 @@ class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeA
     }
   }
 
-  /*sparkTest("Test for Index out of bounds") {
-    val s = "hi"
+  sparkTest("Test for missing fields") {
+    val m = Map("name" -> "Jack", "age" -> "25")
     try {
-      s.charAt(-1)
+      DataMigration.checkFor(m, "updated_at")
       fail()
     }
     catch {
-      case _: IndexOutOfBoundsException => // Expected, so continue
+      case _: NoSuchElementException =>
     }
-  }*/
+  }
 
   /*sparkTest("Test for requests without created_at") {
     val string1 = """{"name":"EMILY","user_id":"200000000753855","controller":"gradebooks","user_request":"true"}"""
