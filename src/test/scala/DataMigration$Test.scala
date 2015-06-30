@@ -9,11 +9,11 @@ import org.scalatest.{BeforeAndAfter, ShouldMatchers}
 class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeAndAfter {
 
   sparkTest("test test") {
-    DataMigration.run(sc, "/Users/pteeka/IdeaProjects/DataMig/src/main/resources/lessDataMigration.txt", "/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration")
+    DataMigration.run(sc, "src/main/resources/lessDataMigration.txt", "/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration")
   }
 
   sparkTest("Test for grouping by RequestId") {
-    val textFile = sc.textFile("/Users/pteeka/IdeaProjects/DataMig/src/main/resources/lessDataMigration.txt")
+    val textFile = sc.textFile("src/main/resources/lessDataMigration.txt")
     val requestIdValuePairs = DataMigration.groupByRequestId(textFile)
     assert(requestIdValuePairs.count() == 5)
   }
@@ -55,54 +55,4 @@ class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeA
     assert(groups.count() == setOfUserIds.size)
   }
 
-  sparkTest("Test for requests without updated_at") {
-    val string1 = """{"name":"EMILY","user_id":"200000000753855","controller":"gradebooks","user_request":"true"}"""
-    val string2 = """{"summarized":"true","user_id":"200000000753855","user_request":"false","updated_at":"2015-05-10 17:03:44+0000"}"""
-    val multipleRequests = List(string1, string2).toIterable
-    try {
-      val mergedOutput = DataMigration.merging(multipleRequests)
-      fail()
-    }
-    catch {
-      case _: NoSuchElementException =>
-    }
-  }
-
-  sparkTest("Test for missing fields") {
-    val m = Map("name" -> "Jack", "age" -> "25")
-    try {
-      DataMigration.checkFor(m, "updated_at")
-      fail()
-    }
-    catch {
-      case _: NoSuchElementException =>
-    }
-  }
-
-  /*sparkTest("Test for requests without created_at") {
-    val string1 = """{"name":"EMILY","user_id":"200000000753855","controller":"gradebooks","user_request":"true"}"""
-    val string2 = """{"summarized":"true","user_id":"200000000753855","user_request":"false","updated_at":"2015-05-10 17:03:44+0000"}"""
-    val multipleRequests = List(string1, string2).toIterable
-    val keyValuePair = RDD("5625fa4e-d7ae-4d15-9fe0-e7e12b4ca7e1",multipleRequests)
-  }*/
 }
-
-  /*sparkTest("Test for Merging Logic") {
-    DataMigration.run(sc,"src/test/resources/mergingTestFile.txt", "src/test/resources/mergingTestOutput")
-    val outputFiles = new java.io.File("src/test/resources/mergingTestOutput").listFiles.filter(_.getName.startsWith("part"))
-    val linesInOutputFiles = outputFiles.map{
-      file => Source.fromFile(file).getLines().mkString
-    }
-    val keyRequestTuple=linesInOutputFiles.map{ line =>
-      val index = line.indexOf(" ")
-      val key = line.substring(0,index)
-      val request = line.substring(index)
-      val requestMap = parse(request).values.asInstanceOf[Map[String,String]]
-      (key,requestMap)
-    }
-    keyRequestTuple.foreach { case (key, requestMap) =>
-      if(key.contains("5625fa4e-d7ae-4d15-9fe0-e7e12b4ca7e1")) {
-        assert(requestMap("name")=="EMILY" && requestMap("user_request")=="false" && requestMap.contains("summarized") )
-      }
-    }
-  }*/
