@@ -22,24 +22,24 @@ object DataMigration {
       val json = line.substring(index)
       (requestId, json)
     }
-    val keyValuePairs = requestByIdValue.groupByKey(numPartitions = 60)
+    val keyValuePairs = requestByIdValue.groupByKey()
     keyValuePairs
   }
 
   def writeToFile(keyValuePairs: RDD[(String,Iterable[String])], outputPath: String) = {
     keyValuePairs.map { case (requestId, requests) =>
       if (requests.size > 1) {
-        val requestMap = merging(requests)
-          if (checkFor(requestMap, "created_at")) {
-            val currentDate = DateTime.parse(requestMap("created_at"), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ"))
-            requestMap("user_id") + "|" + currentDate + "|" + requestId + " " + mergedOutputToString(requestMap)
-          }
+        val mergedRequestMap = merging(requests)
+        if (checkFor(mergedRequestMap, "created_at")) {
+          val outputPattern = writeToFilePattern(mergedRequestMap,requestId)
+          outputPattern + " " + mergedOutputToString(mergedRequestMap)
         }
+      }
       else {
         val requestMap=parseStringToMapLift(requests.mkString)
-          if (checkFor(requestMap, "created_at")) {
-            val currentDate = DateTime.parse(requestMap("created_at"), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ"))
-            requestMap("user_id") + "|" + currentDate + "|" + requestId + requests.mkString
+        if (checkFor(requestMap, "created_at")) {
+          val outputPattern = writeToFilePattern(requestMap, requestId)
+          outputPattern + requests.mkString
         }
       }
     }.saveAsTextFile(outputPath)
@@ -52,7 +52,6 @@ object DataMigration {
     var mergedOutput = Map(("updated_at", "2000-05-20 15:53:25+0000"))
 
     for (currentMap <- requestMaps) {
-      //if (currentMap.contains("updated_at")) {
         if(checkFor(currentMap,"updated_at")) {
           val currentDate = DateTime.parse(currentMap("updated_at"), DateTimeFormat.forPattern(datePattern))
           val mergedDate = DateTime.parse(mergedOutput("updated_at"), DateTimeFormat.forPattern(datePattern))
@@ -69,7 +68,6 @@ object DataMigration {
             val newOutput = mergedOutput ++ keyValuesOnlyInCurrentMap
             mergedOutput = newOutput
           }
-      //}
         }
     }
     mergedOutput
@@ -93,12 +91,15 @@ object DataMigration {
     Printer.compact(JsonAST.render(json))
   }
 
+  def writeToFilePattern(m:Map[String,String], s: String) :String  = {
+    val currentDate = DateTime.parse(m("created_at"), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ"))
+    val outputPattern = m("user_id") + "|" + currentDate + "|" + s
+    outputPattern
+  }
+
   def main(args: Array[String]) {
     val sc = new SparkContext(new SparkConf().setMaster("local").setAppName("DataMigration").set("spark.hadoop.validateOutputSpecs", "false"))
-    val inputPath = "/Users/pteeka/IdeaProjects/DataMig/src/test/resources/mergingTestFile.txt"
-    val outputPath="/Users/pteeka/IdeaProjects/DataMig/target/mergingTestFileOutput"
-    //run( sc, args(0),args(1));
-    run(sc,inputPath,outputPath)
+    run( sc, args(0),args(1));
   }
 }
 

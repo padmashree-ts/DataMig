@@ -9,11 +9,11 @@ import org.scalatest.{BeforeAndAfter, ShouldMatchers}
 class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeAndAfter {
 
   sparkTest("test test") {
-    DataMigration.run(sc, "src/main/resources/lessDataMigration.txt", "/Users/pteeka/IdeaProjects/DataMig/target/lessDataMigration")
+    DataMigration.run(sc, "src/test/resources/lessDataMigration.txt", "target/testOutput")
   }
 
   sparkTest("Test for grouping by RequestId") {
-    val textFile = sc.textFile("src/main/resources/lessDataMigration.txt")
+    val textFile = sc.textFile("src/test/resources/lessDataMigration.txt")
     val requestIdValuePairs = DataMigration.groupByRequestId(textFile)
     assert(requestIdValuePairs.count() == 5)
   }
@@ -39,7 +39,7 @@ class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeA
   }
 
   sparkTest("RequestId with multiple requests all have the same user_id") {
-    val textFile = sc.textFile("src/main/resources/lessDataMigration.txt")
+    val textFile = sc.textFile("src/test/resources/lessDataMigration.txt")
     val groups = DataMigration.groupByRequestId(textFile)
     val setOfUserIds = groups.map { case (requestId, requests) =>
       val user_ids = requests.map { request =>
@@ -53,6 +53,13 @@ class DataMigration$Test extends SparkTestUtils with ShouldMatchers with BeforeA
       user_ids.toSet
     }.collect()
     assert(groups.count() == setOfUserIds.size)
+  }
+
+  sparkTest("Test for output pattern") {
+    val m = Map("summarized" -> "true", "user_id" -> "200000000753855", "created_at" -> "2015-05-20 17:03:44+0000")
+    val s = "76d84a76-ad29-4490-b7a8-bcfe9ee41e5c"
+    val outputPattern = DataMigration.writeToFilePattern(m,s)
+    assert(outputPattern == """200000000753855|2015-05-20T11:03:44.000-06:00|76d84a76-ad29-4490-b7a8-bcfe9ee41e5c""")
   }
 
 }
